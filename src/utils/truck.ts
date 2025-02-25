@@ -1,6 +1,7 @@
 import { TerrainPoint, getTerrainHeightAt } from './terrain';
 import { PhysicsManager } from './physics';
 import { ScoreManager } from './scoring';
+import truckImage from '../assets/toyo van.png';
 
 export class Truck {
   public readonly MAX_SPEED = 400;
@@ -34,7 +35,7 @@ export class Truck {
   private airRotationSpeed: number;
   private physicsManager: PhysicsManager;
   private scoreManager: ScoreManager;
-  private truckImage: HTMLImageElement;
+  private image: HTMLImageElement;
   private imageLoaded: boolean;
   private landingBounce: number = 0;
   private lastGroundedState: boolean = false;
@@ -60,14 +61,9 @@ export class Truck {
     this.airRotationSpeed = 3.0;
     this.physicsManager = new PhysicsManager();
     this.scoreManager = new ScoreManager();
+    this.image = new Image();
+    this.image.src = truckImage;
     this.imageLoaded = false;
-
-    // Load the truck image
-    this.truckImage = new Image();
-    this.truckImage.onload = () => {
-      this.imageLoaded = true;
-    };
-    this.truckImage.src = '/src/assets/toyo van.png';
   }
 
   getScore() {
@@ -293,10 +289,10 @@ export class Truck {
     ctx.shadowOffsetX = 5;
     ctx.shadowOffsetY = 5;
 
-    if (this.imageLoaded) {
+    if (this.image.complete) {
       // Draw the truck image
       ctx.drawImage(
-        this.truckImage,
+        this.image,
         -this.width / 2,
         -this.height,
         this.width,
