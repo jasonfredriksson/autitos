@@ -32,6 +32,16 @@
   letter-spacing: 2px;
 }
 
+.game-subtitle {
+  font-family: 'Press Start 2P', cursive;
+  color: var(--text-color);
+  text-shadow: 0 0 10px var(--shadow-color),
+               2px 2px 0 var(--accent-color);
+  font-size: 20px;
+  margin-bottom: 18px;
+  text-align: center;
+  letter-spacing: 2px;
+}
 .game-canvas-container {
   position: relative;
   margin-bottom: 20px;

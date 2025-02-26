@@ -176,6 +176,7 @@ export function Game() {
   return (
     <div className="game-container">
       <h1 className="game-title">TOYO VAN THROUGH THE DESERT</h1>
+      <h2 className="game-subtitle">A game by Jason Playing Games</h2>
       <div className="game-canvas-container">
         <canvas
           ref={canvasRef}
