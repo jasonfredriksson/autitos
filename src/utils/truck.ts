@@ -1,6 +1,7 @@
 import { TerrainPoint, getTerrainHeightAt } from './terrain';
 import { PhysicsManager } from './physics';
 import { ScoreManager } from './scoring';
+import { SoundManager, EngineState } from './sound';
 import truckImage from '../assets/toyo van.png';
 
 export class Truck {
@@ -18,6 +19,10 @@ export class Truck {
   private readonly NITRO_MAX = 100;
   private readonly NITRO_RECHARGE_BASE = 25;
   private readonly NITRO_DEPLETION_RATE = 45;
+  private readonly NITRO_CONSUMPTION_RATE = 10;
+  private readonly MAX_REVERSE_SPEED = 200;
+  private readonly REVERSE_ACCELERATION = 200;
+  private readonly BRAKE_FORCE = 0.5;
 
   // Truck state
   public x: number;
@@ -28,13 +33,14 @@ export class Truck {
   public height: number;
   public wheelBase: number;
   public grounded: boolean = false;
-  public nitroBoost: number = 100;
+  public nitroFuel: number = 100;
   public nitroActive: boolean = false;
   private currentMaxSpeed: number = this.MAX_SPEED;
   private targetRotation: number;
   private airRotationSpeed: number;
   private physicsManager: PhysicsManager;
   private scoreManager: ScoreManager;
+  private soundManager: SoundManager;
   private image: HTMLImageElement;
   private imageLoaded: boolean;
   private landingBounce: number = 0;
@@ -51,6 +57,8 @@ export class Truck {
   private currentAirTime: number = 0;
   private maxAirTime: number = 0;
   private totalAirTime: number = 0;
+  private isAccelerating: boolean = false;
+  private isReversing: boolean = false;
 
   constructor(x: number, y: number) {
     this.x = x;
@@ -61,6 +69,15 @@ export class Truck {
     this.airRotationSpeed = 3.0;
     this.physicsManager = new PhysicsManager();
     this.scoreManager = new ScoreManager();
+    this.soundManager = new SoundManager();
+    this.soundManager.setEngineSounds({
+      [EngineState.ACCELERATION]: '/sounds/mid-acceleration engine.wav',
+      [EngineState.DECELERATION]: '/sounds/deceleration final.wav',
+      [EngineState.REVERSE]: '/sounds/mid-acceleration engine.wav',
+      [EngineState.IDLE]: '/sounds/idle.wav'
+    });
+    this.soundManager.setBackgroundMusic('/sounds/retro-racing-theme.wav');
+    this.soundManager.playBackgroundMusic(0.3);
     this.image = new Image();
     this.image.src = truckImage;
     this.imageLoaded = false;
@@ -82,22 +99,22 @@ export class Truck {
   }
 
   updateNitro(deltaTime: number, spacePressed: boolean) {
-    if (spacePressed && this.nitroBoost > 0 && !this.nitroActive) {
+    if (spacePressed && this.nitroFuel > 0 && !this.nitroActive) {
       this.nitroActive = true;
     }
 
     if (this.nitroActive) {
-      this.nitroBoost = Math.max(0, this.nitroBoost - this.NITRO_DEPLETION_RATE * deltaTime);
+      this.nitroFuel = Math.max(0, this.nitroFuel - this.NITRO_DEPLETION_RATE * deltaTime);
       
-      if (this.nitroBoost <= 0) {
+      if (this.nitroFuel <= 0) {
         this.nitroActive = false;
       }
-    } else if (this.nitroBoost < 100) {
+    } else if (this.nitroFuel < 100) {
       const baseRecharge = this.NITRO_RECHARGE_BASE * deltaTime;
       const movementPenalty = Math.abs(this.velocity.x) / this.MAX_SPEED;
       const rechargeRate = baseRecharge * (1 + (Math.abs(this.velocity.x) < 1 ? 0.8 : -movementPenalty * 0.5));
       
-      this.nitroBoost = Math.min(100, this.nitroBoost + rechargeRate);
+      this.nitroFuel = Math.min(100, this.nitroFuel + rechargeRate);
     }
 
     return this.nitroActive;
@@ -123,46 +140,42 @@ export class Truck {
       return;
     }
 
-    const slopeResistance = Math.max(0, Math.sin(this.rotation));
-    const accelerationMultiplier = 1 - slopeResistance * 0.7;
-
-    this.velocity.x = Math.min(
-      this.velocity.x + this.ACCELERATION * deltaTime * accelerationMultiplier * nitroMultiplier,
-      currentMaxSpeed
-    );
+    const acceleration = useNitro && this.nitroFuel > 0 ? this.ACCELERATION * 2 : this.ACCELERATION;
+    this.velocity.x = Math.min(this.velocity.x + acceleration * deltaTime, useNitro ? this.MAX_SPEED * 1.5 : this.MAX_SPEED);
+    
+    // Update engine sound based on state
+    this.soundManager.updateEngineSound(true, false, this.velocity.x);
+    this.isAccelerating = true;
+    
+    if (useNitro && this.nitroFuel > 0) {
+      this.nitroFuel = Math.max(0, this.nitroFuel - this.NITRO_CONSUMPTION_RATE * deltaTime);
+    }
   }
 
   reverse(deltaTime: number) {
-    if (!this.grounded) {
-      const { airControl } = this.physicsManager.calculatePhysics(
-        this.velocity,
-        this.rotation,
-        this.grounded,
-        this.nitroActive
-      );
-      
-      this.velocity.x = Math.max(
-        this.velocity.x - this.ACCELERATION * deltaTime * airControl,
-        -this.MAX_SPEED / 2
-      );
-      return;
+    if (Math.abs(this.velocity.x) > this.MAX_REVERSE_SPEED * 0.1) {
+      // Apply braking force first
+      this.velocity.x *= (1 - this.BRAKE_FORCE * deltaTime);
+    } else {
+      // Then start reversing
+      this.velocity.x = Math.max(this.velocity.x - this.REVERSE_ACCELERATION * deltaTime, -this.MAX_REVERSE_SPEED);
     }
-
-    const slopeAssistance = Math.max(0, -Math.sin(this.rotation));
-    const reverseMultiplier = 1 + slopeAssistance * 0.8;
-
-    this.velocity.x = Math.max(
-      this.velocity.x - this.ACCELERATION * deltaTime * reverseMultiplier,
-      -this.MAX_SPEED / 2
-    );
+    
+    // Update engine sound for reverse
+    this.soundManager.updateEngineSound(false, true, this.velocity.x);
+    this.isReversing = true;
   }
 
   idle(deltaTime: number) {
-    this.updateNitro(deltaTime, false);
-
+    // Apply air/ground resistance
     const resistanceFactor = this.grounded ? 0.95 : 0.99;
     this.velocity.x *= resistanceFactor;
     if (Math.abs(this.velocity.x) < 1) this.velocity.x = 0;
+    
+    // Update sound for deceleration/idle
+    this.soundManager.updateEngineSound(false, false, this.velocity.x);
+    this.isAccelerating = false;
+    this.isReversing = false;
   }
 
   update(deltaTime: number, terrain: TerrainPoint[]) {
@@ -230,6 +243,23 @@ export class Truck {
       this.currentAirTime = 0;
     }
 
+    // Calculate terrain angle at current position
+    const currentPoint = terrain.find(p => p.x > this.x - 5 && p.x < this.x + 5);
+    const nextPoint = terrain.find(p => p.x > this.x + 5 && p.x < this.x + 15);
+    
+    if (currentPoint && nextPoint) {
+      const angle = Math.atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x);
+      const slopeThreshold = 0.5; // About 28 degrees
+      const speed = Math.abs(this.velocity.x);
+      
+      // If slope is steep enough and we're going fast enough, become airborne
+      if (Math.abs(angle) > slopeThreshold && speed > this.MAX_SPEED * 0.4) {
+        this.grounded = false;
+        // Add upward velocity based on slope angle and speed
+        this.velocity.y = -Math.sin(angle) * speed * 0.5;
+      }
+    }
+
     // Calculate physics state
     const physics = this.physicsManager.calculatePhysics(
       this.velocity,
@@ -261,6 +291,11 @@ export class Truck {
     }
 
     this.rotation = Math.max(Math.min(this.rotation, Math.PI / 2.5), -Math.PI / 2.5);
+
+    // Update sound if not accelerating or reversing (for deceleration sound)
+    if (!this.isAccelerating && !this.isReversing) {
+      this.soundManager.updateEngineSound(false, false, this.velocity.x);
+    }
   }
 
   draw(ctx: CanvasRenderingContext2D) {
@@ -344,5 +379,9 @@ export class Truck {
     }
 
     ctx.restore();
+  }
+
+  destroy() {
+    this.soundManager.stopAll();
   }
 }
