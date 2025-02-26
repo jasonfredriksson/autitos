@@ -41,3 +41,49 @@
   border-radius: 10px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
 }
+
+.game-instructions {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 2rem;
+  border-radius: 10px;
+  border: 2px solid var(--accent-color);
+  color: var(--text-color);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 14px;
+  text-align: center;
+  z-index: 100;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  backdrop-filter: blur(4px);
+}
+
+.game-instructions ul {
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0;
+}
+
+.game-instructions li {
+  margin: 1rem 0;
+  line-height: 1.5;
+}
+
+.start-button {
+  background: var(--accent-color);
+  color: var(--primary-color);
+  border: none;
+  padding: 1rem 2rem;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 5px;
+}
+
+.start-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 15px var(--accent-color);
+}

@@ -30,12 +30,13 @@ export function Game() {
     }
     return segments;
   });
+  const [gameStarted, setGameStarted] = useState(false);
 
   const keys = useGameControls();
   const [airTime, setAirTime] = useState(0);
 
   const update = (deltaTime: number) => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !gameStarted) return;
 
     // Update sky
     skyManager.update(deltaTime);
@@ -79,7 +80,7 @@ export function Game() {
   };
 
   const draw = (ctx: CanvasRenderingContext2D) => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !gameStarted) return;
 
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     ctx.save();
@@ -181,6 +182,28 @@ export function Game() {
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
           className="game-canvas"
+        />
+        {!gameStarted && (
+          <div className="game-instructions">
+            <h2>How to Play</h2>
+            <ul>
+              <li>Use ← and → to accelerate or reverse</li>
+              <li>Press Space bar to activate Nitro</li>
+            </ul>
+            <button 
+              className="start-button"
+              onClick={() => setGameStarted(true)}
+            >
+              START GAME
+            </button>
+          </div>
+        )}
+        <GameUI 
+          lastPoints={lastPoints}
+          position={{ 
+            x: truck.x - Math.max(0, truck.x - CANVAS_WIDTH / 3), 
+            y: truck.y 
+          }} 
         />
         <Dashboard 
           speed={truck.getSpeed()} 
