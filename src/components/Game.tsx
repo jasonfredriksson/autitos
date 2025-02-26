@@ -7,6 +7,7 @@ import { Dashboard } from './Dashboard';
 import { useGameControls } from '../hooks/useGameControls';
 import { CANVAS_HEIGHT, CANVAS_WIDTH, SEGMENT_WIDTH, SEGMENTS_TO_KEEP } from '../utils/constants';
 import { SkyManager } from '../utils/sky';
+import '../styles/game.css';
 
 export function Game() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -172,29 +173,23 @@ export function Game() {
   useGameLoop(canvasRef, update, draw);
 
   return (
-    <div className="relative w-screen h-screen flex flex-col items-center justify-center bg-[#38376b]">
-      <div className="relative">
+    <div className="game-container">
+      <h1 className="game-title">TOYO VAN THROUGH THE DESERT</h1>
+      <div className="game-canvas-container">
         <canvas
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          className="object-contain max-h-full rounded-lg shadow-2xl"
+          className="game-canvas"
         />
-        <GameUI 
-          lastPoints={lastPoints}
-          position={{ 
-            x: truck.x - Math.max(0, truck.x - CANVAS_WIDTH / 3), 
-            y: truck.y 
-          }} 
+        <Dashboard 
+          speed={truck.getSpeed()} 
+          nitro={truck.nitroFuel} 
+          maxSpeed={truck.MAX_SPEED}
+          score={score}
+          airTime={{ current: truck.currentAirTime, max: truck.maxAirTime }}
         />
       </div>
-      <Dashboard 
-        speed={truck.getSpeed()} 
-        nitro={truck.nitroBoost} 
-        maxSpeed={truck.MAX_SPEED}
-        score={score}
-        airTime={{ current: truck.currentAirTime, max: truck.maxAirTime }}
-      />
     </div>
   );
 }

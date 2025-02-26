@@ -108,7 +108,7 @@ export class SoundManager {
     }
 
     try {
-      this.backgroundMusic.volume = 0.3;
+      this.backgroundMusic.volume = 0.5;
       this.backgroundMusic.loop = true;
       const playPromise = this.backgroundMusic.play();
       
@@ -136,7 +136,7 @@ export class SoundManager {
     }
   }
 
-  playBackgroundMusic(volume: number = 0.3) {
+  playBackgroundMusic(volume: number = 0.6) {
     if (this.backgroundMusic) {
       this.backgroundMusic.volume = volume;
       this.tryPlayBackgroundMusic();

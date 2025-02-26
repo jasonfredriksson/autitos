@@ -77,7 +77,7 @@ export class Truck {
       [EngineState.IDLE]: '/sounds/idle.wav'
     });
     this.soundManager.setBackgroundMusic('/sounds/retro-racing-theme.wav');
-    this.soundManager.playBackgroundMusic(0.3);
+    this.soundManager.playBackgroundMusic(0.5);
     this.image = new Image();
     this.image.src = truckImage;
     this.imageLoaded = false;
